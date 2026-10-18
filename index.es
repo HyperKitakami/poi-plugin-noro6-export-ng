@@ -51,6 +51,8 @@ const MAX_AIRBASE_COUNT = 3
 //api_combined_flag / noro6 的 FLEET_TYPE 是同一套编号
 const FLEET_TYPE_NAMES = { 1: '機動部隊', 2: '水上打撃部隊', 3: '輸送護衛部隊' }
 
+const pad2 = (value) => (value < 10 ? `0${value}` : `${value}`)
+
 //poi 的 airbase 数组里可能同时存在多个海域的基地，按选中的海域挑出来
 const pickAirbases = (airbases, areaId) => {
     if (areaId === '' || areaId == null) return []
@@ -89,6 +91,7 @@ export const reactClass = connect(state => ({
     //fleetMode 自动时按连合 / 7舰第3舰队 / 第1舰队 依次判断；手动时按 manualFleets 勾选
     state = {
         result: "",
+        summary: "",
         selectedAirbaseArea: null,
         fleetMode: "auto",
         manualFleets: [true, true, true, true],
@@ -111,14 +114,16 @@ export const reactClass = connect(state => ({
             .map(parseEquip)
     }
 
-    //按下拉选项生成舰娘/装备 JSON 写进下方文本域，不再顺带写剪贴板
-    generateStock = () => {
+    //把下拉选中的舰娘/装备数据直接复制到剪贴板（不动下方文本域）
+    copyStock = () => {
         const { stockMode } = this.state
         const lockedOnly = stockMode.indexOf('Locked') !== -1
-        const data = stockMode.indexOf('ships') === 0
-            ? this.buildShipStock(lockedOnly)
-            : this.buildEquipStock(lockedOnly)
-        this.setState({ result: JSON.stringify(data) })
+        const isShips = stockMode.indexOf('ships') === 0
+        const data = isShips ? this.buildShipStock(lockedOnly) : this.buildEquipStock(lockedOnly)
+        copyToClipboard(JSON.stringify(data))
+        if (typeof window.toast === 'function') {
+            window.toast(`已复制 ${data.length} ${isShips ? '只舰娘' : '件装备'}`)
+        }
     }
 
     handleStockModeChange = (event) => {
@@ -246,6 +251,18 @@ export const reactClass = connect(state => ({
         this.setState({ manualFleets })
     }
 
+    //刷新后的一行摘要，省得每次去比对整段 JSON
+    buildRefreshSummary = (fleetParts, airbaseCount) => {
+        const now = new Date()
+        const time = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`
+        const total = fleetParts.reduce((sum, part) => sum + part.ships, 0)
+        const fleetsText = fleetParts.length
+            ? fleetParts.map(part => `f${part.index + 1} ${part.ships}`).join(' / ')
+            : '无舰队'
+        const airbaseText = airbaseCount ? `陆航 a1~a${airbaseCount}` : '陆航 无'
+        return `已刷新 · ${total} 舰（${fleetsText}）· ${airbaseText} · ${time}`
+    }
+
     //舰队编成JSON生成
     refreshFleetText = () => {
         const fleets = this.props.fleets || [];
@@ -253,6 +270,7 @@ export const reactClass = connect(state => ({
         const equips = this.props.equips;
         const airbases = this.props.airbases;
         const fleetPlan = this.resolveFleetPlan();
+        const fleetParts = [];
         let result = `{"version": 4,"hqlv":${this.props.hqlv},`;
 
         for (let p = 0; p < fleetPlan.indices.length; p++) {
@@ -260,12 +278,14 @@ export const reactClass = connect(state => ({
             const fleet = fleets[i];
             //空舰队没有导出价值，直接跳过
             if (!fleet || !fleet.api_ship || !this.fleetHasShips(i)) continue;
+            let shipCount = 0;
             result += `"f${i + 1}":{`;
             //連合标记只能挂在第 1 艦隊上，noro6 以此判断 f1+f2 是否合并
             if (fleetPlan.combinedType && i === 0) result += `"t":${fleetPlan.combinedType},`;
             for (let j = 0; j < fleet.api_ship.length; j++) {
                 if (ships[fleet.api_ship[j]]) {
                     const ship = ships[fleet.api_ship[j]];
+                    shipCount += 1;
                     result += `"s${j + 1}":{"id":${ship.api_ship_id},"lv":${ship.api_lv},"luck":${ship.api_lucky[0]},"items":{`;
                     for (let k = 0; k < ship.api_slot.length; k++) {
                         const slot = ship.api_slot[k];
@@ -295,6 +315,7 @@ export const reactClass = connect(state => ({
             } else {
                 result += `},`
             }
+            fleetParts.push({ index: i, ships: shipCount });
         }
 
         const airbaseArea = this.resolveAirbaseArea(this.getAirbaseGroups());
@@ -327,7 +348,7 @@ export const reactClass = connect(state => ({
             result += `}`
         }
 
-        this.setState({ result })
+        this.setState({ result, summary: this.buildRefreshSummary(fleetParts, airbase_cnt) })
         return result;
     }
 
@@ -382,11 +403,9 @@ export const reactClass = connect(state => ({
                     <Button className="primaryButton" onClick={this.openNewPage}>
                         打开制空权模拟器
                     </Button>
-                </div>
 
-                <div className="section">
-                    <h4>单独数据导出</h4>
-                    <div className="optionsRow">
+                    <div className="inlineRow">
+                        <span className="inlineLabel">单独数据导出</span>
                         <select
                             className="areaSelect stockSelect"
                             value={this.state.stockMode}
@@ -397,8 +416,8 @@ export const reactClass = connect(state => ({
                             <option value="equipsAll">装备：包含未锁定</option>
                             <option value="equipsLocked">装备：仅限已锁定</option>
                         </select>
-                        <Button className="secondaryButton generateButton" onClick={this.generateStock}>
-                            生成
+                        <Button className="secondaryButton inlineButton" onClick={this.copyStock}>
+                            复制
                         </Button>
                     </div>
                 </div>
@@ -467,6 +486,9 @@ export const reactClass = connect(state => ({
                     )}
 
                     <div className="optionsHint fleetHint">{this.getFleetPlanHint(fleetPlan)}</div>
+                    {this.state.summary && (
+                        <div className="optionsHint refreshSummary">{this.state.summary}</div>
+                    )}
 
                     <div className="resultHeader">
                         <h4>JSON 文本</h4>

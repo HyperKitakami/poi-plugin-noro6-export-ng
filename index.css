@@ -155,10 +155,30 @@ h4 {
     min-width: 0;
 }
 
-.generateButton {
-    width: 88px;
+/* 单独数据导出：降级成一行 inline */
+.inlineRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.inlineLabel {
+    flex: 0 0 auto;
+    color: #aaaaaa;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.inlineButton {
+    width: 60px;
     flex: 0 0 auto;
     margin-bottom: 0;
+}
+
+.refreshSummary {
+    margin-top: 2px;
+    margin-bottom: 6px;
 }
 
 .resultHeader {
