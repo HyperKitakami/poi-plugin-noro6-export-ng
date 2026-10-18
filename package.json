@@ -1,15 +1,21 @@
 {
-    "name": "poi-plugin-noro6-export",
+    "name": "poi-plugin-noro6-export-plus",
     "version": "2.0.1",
     "main": "index.es",
-    "description": "a plugin export ships and equips to noro6",
+    "description": "a plugin export ships and equips to noro6 (HyperKitakami's fork)",
     "author": {
-        "name": "oooo1111880",
-        "url": "https://github.com/oooo1111880"
+        "name": "HyperKitakami",
+        "url": "https://github.com/HyperKitakami"
     },
+    "contributors": [
+        {
+            "name": "oooo1111880",
+            "url": "https://github.com/oooo1111880"
+        }
+    ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/oooo1111880/poi-plugin-noro6-export"
+        "url": "https://github.com/HyperKitakami/poi-plugin-noro6-export"
     },
     "keywords": [
         "poi",
@@ -19,8 +25,8 @@
     ],
     "license": "MIT",
     "poiPlugin": {
-        "title": "艦娘 / 装備管理",
-        "description": "輸出艦娘/裝備信息至noro6制空權計算機的管理功能",
+        "title": "noro6舰队导出",
+        "description": "将舰队编成与舰娘/装备所持数据导出至 noro6 制空权模拟器（增强 fork：连合/游击自动识别、陆航按海域导出、所持数据一键复制）",
         "icon": ""
     }
 }
