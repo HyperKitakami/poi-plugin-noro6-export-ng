@@ -53,6 +53,9 @@ const FLEET_TYPE_NAMES = { 1: '機動部隊', 2: '水上打撃部隊', 3: '輸�
 
 const pad2 = (value) => (value < 10 ? `0${value}` : `${value}`)
 
+//noro6 只接受数字；改修情报缺失等情况下 api_level 会是 undefined，这里统一兜成 0
+const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0)
+
 //poi 的 airbase 数组里可能同时存在多个海域的基地，按选中的海域挑出来
 const pickAirbases = (airbases, areaId) => {
     if (areaId === '' || areaId == null) return []
@@ -256,7 +259,7 @@ export const reactClass = connect(state => ({
         const airbases = this.props.airbases;
         const fleetPlan = this.resolveFleetPlan();
         const fleetParts = [];
-        let result = `{"version": 4,"hqlv":${this.props.hqlv},`;
+        let result = `{"version": 4,"hqlv":${num(this.props.hqlv)},`;
 
         for (let p = 0; p < fleetPlan.indices.length; p++) {
             const i = fleetPlan.indices[p];
@@ -271,19 +274,19 @@ export const reactClass = connect(state => ({
                 if (ships[fleet.api_ship[j]]) {
                     const ship = ships[fleet.api_ship[j]];
                     shipCount += 1;
-                    result += `"s${j + 1}":{"id":${ship.api_ship_id},"lv":${ship.api_lv},"luck":${ship.api_lucky[0]},"items":{`;
+                    result += `"s${j + 1}":{"id":${num(ship.api_ship_id)},"lv":${num(ship.api_lv)},"luck":${num(ship.api_lucky && ship.api_lucky[0])},"items":{`;
                     for (let k = 0; k < ship.api_slot.length; k++) {
                         const slot = ship.api_slot[k];
                         if (equips[slot]) {
                             const equip = equips[slot];
-                            result += `"i${k + 1}":{"id":${equip.api_slotitem_id},"rf":${equip.api_level}`
+                            result += `"i${k + 1}":{"id":${num(equip.api_slotitem_id)},"rf":${num(equip.api_level)}`
                             if (equip.api_alv) result += `,"mas":${equip.api_alv}`
                             result += `},`
                         }
                     }
                     if (equips[ship.api_slot_ex]) {
                         const equip = equips[ship.api_slot_ex]
-                        result += `"ix":{"id":${equip.api_slotitem_id},"rf":${equip.api_level}`
+                        result += `"ix":{"id":${num(equip.api_slotitem_id)},"rf":${num(equip.api_level)}`
                         if (equip.api_alv) result += `,"mas":${equip.api_alv}`
                         result += `}`
                     }
@@ -314,7 +317,7 @@ export const reactClass = connect(state => ({
                 const plane = airbase.api_plane_info[j];
                 if (equips[plane.api_slotid]) {
                     const equip = equips[plane.api_slotid]
-                    result += `"i${j + 1}":{"id":${equip.api_slotitem_id},"rf":${equip.api_level}`
+                    result += `"i${j + 1}":{"id":${num(equip.api_slotitem_id)},"rf":${num(equip.api_level)}`
                     if (equip.api_alv) result += `,"mas":${equip.api_alv}`
                     result += `},`
                 }
@@ -324,7 +327,7 @@ export const reactClass = connect(state => ({
             } else {
                 result += `},`
             }
-            result += `"mode":${airbase.api_action_kind}},`
+            result += `"mode":${num(airbase.api_action_kind)}},`
         }
 
         if (result.charAt(result.length - 1) == ',') {
