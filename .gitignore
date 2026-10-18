@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# WorkBuddy 的会话/记忆数据，不需要进版本库
+.workbuddy/
