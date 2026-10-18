@@ -4,7 +4,7 @@
 
 本仓库是 [oooo1111880/poi-plugin-noro6-export](https://github.com/oooo1111880/poi-plugin-noro6-export) 的 fork，由 [HyperKitakami](https://github.com/HyperKitakami) 维护。上游只做「所持数据导出」，本 fork 在此之上补齐了编成与陆航导出，并重做了界面。
 
-![界面预览](./IMG/001.png)
+![界面预览](https://raw.githubusercontent.com/HyperKitakami/poi-plugin-noro6-export-ng/main/IMG/001.png)
 
 ## 功能
 
