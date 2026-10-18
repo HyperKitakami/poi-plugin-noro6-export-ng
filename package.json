@@ -32,7 +32,7 @@
     },
     "license": "MIT",
     "poiPlugin": {
-        "title": "noro6舰队导出",
+        "title": "舰队导出",
         "description": "将舰队编成与舰娘/装备所持数据导出至 noro6 制空权模拟器（增强 fork：连合/游击自动识别、陆航按海域导出、所持数据一键复制）",
         "icon": ""
     }
