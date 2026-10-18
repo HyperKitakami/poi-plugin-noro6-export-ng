@@ -225,8 +225,13 @@ h4 {
     margin: 0;
 }
 
+.resultActions {
+    display: flex;
+    gap: 8px;
+}
+
 .copyButton {
-    width: 72px;
+    width: 64px;
     flex: 0 0 auto;
     margin-bottom: 0;
 }

@@ -136,6 +136,10 @@ export const reactClass = connect(state => ({
         if (typeof window.toast === 'function') window.toast('已复制到剪贴板')
     }
 
+    clearResult = () => {
+        this.setState({ result: '', summary: '' })
+    }
+
     //把陆航按 api_area_id 分组（poi 的 airbase 数组里可能同时存在 6 图和 7 图的基地）
     getAirbaseGroups = () => {
         const airbases = this.props.airbases || []
@@ -477,13 +481,22 @@ export const reactClass = connect(state => ({
 
                     <div className="resultHeader">
                         <h4>JSON 文本</h4>
-                        <Button
-                            className="secondaryButton copyButton"
-                            onClick={this.copyResult}
-                            disabled={!result}
-                        >
-                            复制
-                        </Button>
+                        <div className="resultActions">
+                            <Button
+                                className="secondaryButton copyButton"
+                                onClick={this.copyResult}
+                                disabled={!result}
+                            >
+                                复制
+                            </Button>
+                            <Button
+                                className="secondaryButton copyButton"
+                                onClick={this.clearResult}
+                                disabled={!result}
+                            >
+                                清空
+                            </Button>
+                        </div>
                     </div>
                     <div className="textAreaContainer">
                         <TextArea style={{ height: "120px" }} placeholder="点击上方按钮生成文本" className="bp3-fill" fill={true} value={this.state.result} readOnly={true}></TextArea>
