@@ -398,27 +398,31 @@ export const reactClass = connect(state => ({
             <div>
                 <h2>舰队导出与管理</h2>
 
-                <div className="section">
-                    <h4>内置窗口操作</h4>
-                    <Button className="primaryButton" onClick={this.openNewPage}>
-                        打开制空权模拟器
-                    </Button>
-
-                    <div className="inlineRow">
-                        <span className="inlineLabel">单独数据导出</span>
-                        <select
-                            className="areaSelect stockSelect"
-                            value={this.state.stockMode}
-                            onChange={this.handleStockModeChange}
-                        >
-                            <option value="shipsAll">舰娘：包含未锁定</option>
-                            <option value="shipsLocked">舰娘：仅限已锁定</option>
-                            <option value="equipsAll">装备：包含未锁定</option>
-                            <option value="equipsLocked">装备：仅限已锁定</option>
-                        </select>
-                        <Button className="secondaryButton inlineButton" onClick={this.copyStock}>
-                            复制
+                <div className="topRow">
+                    <div className="topCol">
+                        <h4>内置窗口操作</h4>
+                        <Button className="primaryButton" onClick={this.openNewPage}>
+                            打开制空权模拟器
                         </Button>
+                    </div>
+
+                    <div className="topCol">
+                        <h4>单独数据导出</h4>
+                        <div className="inlineRow">
+                            <select
+                                className="areaSelect stockSelect"
+                                value={this.state.stockMode}
+                                onChange={this.handleStockModeChange}
+                            >
+                                <option value="shipsAll">舰娘：包含未锁定</option>
+                                <option value="shipsLocked">舰娘：仅限已锁定</option>
+                                <option value="equipsAll">装备：包含未锁定</option>
+                                <option value="equipsLocked">装备：仅限已锁定</option>
+                            </select>
+                            <Button className="secondaryButton inlineButton" onClick={this.copyStock}>
+                                复制
+                            </Button>
+                        </div>
                     </div>
                 </div>
 

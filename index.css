@@ -155,19 +155,26 @@ h4 {
     min-width: 0;
 }
 
-/* 单独数据导出：降级成一行 inline */
+/* 顶部两个区块并排：内置窗口操作 / 单独数据导出 */
+.topRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.topCol {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+/* 单独数据导出：下拉 + 复制 在一行里 */
 .inlineRow {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 10px;
-}
-
-.inlineLabel {
-    flex: 0 0 auto;
-    color: #aaaaaa;
-    font-size: 13px;
-    white-space: nowrap;
 }
 
 .inlineButton {
