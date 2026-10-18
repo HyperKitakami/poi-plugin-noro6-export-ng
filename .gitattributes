@@ -1,0 +1,7 @@
+# 统一按文本处理，仓库内存 LF；检出到工作区时由下面的规则决定行尾
+* text=auto
+
+# 批处理必须保持 CRLF：cmd.exe 解析 label / goto / 多行 if 时对裸 LF 不可靠，
+# 一旦在某台机器上被规范化成 LF，deploy.bat 会静默跳到错误的 :label
+*.bat text eol=crlf
+*.cmd text eol=crlf

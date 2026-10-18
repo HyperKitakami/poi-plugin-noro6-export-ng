@@ -27,9 +27,6 @@
         "poi-plugin",
         "noro6export"
     ],
-    "scripts": {
-        "deploy": "node scripts/deploy.mjs"
-    },
     "license": "MIT",
     "poiPlugin": {
         "title": "舰队导出",
