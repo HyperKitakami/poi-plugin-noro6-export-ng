@@ -3,8 +3,26 @@ import { Button, TextArea, ButtonGroup, Icon } from "@blueprintjs/core"
 import { connect } from 'react-redux'
 import { shell } from 'electron'
 export const windowMode = false;
-const { BrowserWindow } = require('electron').remote;
+const remote = require('electron').remote;
+const { BrowserWindow } = remote;
 import './index.css';
+
+
+//poi 只在「所有窗口都关掉」时才退出（app.on('window-all-closed') → app.quit()）。
+//所以内置窗口不能是独立窗口：关掉 poi 主窗口后进程会带着它继续活着，
+//再启动 poi 会被单实例锁挡回，而 second-instance 处理器发现 mainWindow 已销毁、什么都不做，
+//表现就是「双击 poi 没反应」。
+//这里把内置窗口挂成主窗口的子窗口，让 Electron 在 main 进程里随主窗口一起销毁；
+//不能靠 renderer 里的 'closed' 监听——主窗口关闭时插件所在的 renderer 已经没了，remote 回调不会执行。
+let noro6Window = null;
+
+const getOwnerWindow = () => {
+    try {
+        return remote.getCurrentWindow();
+    } catch (e) {
+        return null;
+    }
+};
 
 
 const parseShip = (ship) => {
@@ -352,17 +370,21 @@ export const reactClass = connect(state => ({
     }
 
     openOrFocusNoro6Window = (url) => {
-        if (this.noro6Window && !this.noro6Window.isDestroyed()) {
-            this.noro6Window.loadURL(url);
-            this.noro6Window.focus();
-        } else {
-            this.noro6Window = new BrowserWindow({ show: false });
-            this.noro6Window.loadURL(url);
-            this.noro6Window.maximize();
-            this.noro6Window.on('closed', () => {
-                this.noro6Window = null;
-            });
+        if (noro6Window && !noro6Window.isDestroyed()) {
+            noro6Window.loadURL(url);
+            noro6Window.focus();
+            return;
         }
+        const owner = getOwnerWindow();
+        noro6Window = new BrowserWindow({
+            show: false,
+            parent: owner && !owner.isDestroyed() ? owner : undefined
+        });
+        noro6Window.loadURL(url);
+        noro6Window.maximize();
+        noro6Window.on('closed', () => {
+            noro6Window = null;
+        });
     }
 
     openNewPage = () => {
