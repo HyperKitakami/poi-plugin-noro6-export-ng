@@ -1,6 +1,8 @@
 name: Publish to npm
 
-# 打 tag（v0.1.0 之类）时发布；tag 必须与 package.json 的 version 一致
+# 打 tag（v0.1.0 之类）时发布；tag 必须与 package.json 的 version 一致。
+# 注意：npm 对新包的首个版本会走「暂存发布」，registry 上先出现占位版本 0.0.0-stage，
+# 真实版本要维护者在 npmjs.com → Staged Packages 里用 2FA 批准后才上线。
 on:
   push:
     tags:
@@ -14,9 +16,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
