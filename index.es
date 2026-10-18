@@ -48,6 +48,9 @@ const ACTIVITY_AREA_MIN = 30
 //noro6 只会读取 a1~a3，所以一次只能导出一个海域的陆航，且最多 3 队
 const MAX_AIRBASE_COUNT = 3
 
+//api_combined_flag / noro6 的 FLEET_TYPE 是同一套编号
+const FLEET_TYPE_NAMES = { 1: '機動部隊', 2: '水上打撃部隊', 3: '輸送護衛部隊' }
+
 //poi 的 airbase 数组里可能同时存在多个海域的基地，按选中的海域挑出来
 const pickAirbases = (airbases, areaId) => {
     if (areaId === '' || areaId == null) return []
@@ -77,11 +80,19 @@ export const reactClass = connect(state => ({
     airbases: state.info.airbase,
     //海域名（6 → 中部海域）与当前出击海域，用于生成下拉选项和默认值
     mapareas: state.const ? state.const.$mapareas : undefined,
-    sortieMapId: state.sortie ? state.sortie.sortieMapId : 0
+    sortieMapId: state.sortie ? state.sortie.sortieMapId : 0,
+    //连合舰队形式（1 机动 / 2 水上 / 3 输送），0 表示没有连合
+    combinedFlag: state.sortie ? state.sortie.combinedFlag : 0
 }))(class View extends Component {
 
     //selectedAirbaseArea 为 null 时表示「跟随当前出击海域」；'' 表示不导出陆航
-    state = { result: "", selectedAirbaseArea: null };
+    //fleetMode 自动时按连合 / 7舰第3舰队 / 第1舰队 依次判断；手动时按 manualFleets 勾选
+    state = {
+        result: "",
+        selectedAirbaseArea: null,
+        fleetMode: "auto",
+        manualFleets: [true, true, true, true]
+    };
 
     //舰娘资料导出(包含未锁定)
     exportShipsAll = () => {
@@ -197,17 +208,88 @@ export const reactClass = connect(state => ({
         this.setState({ selectedAirbaseArea: value === '' ? '' : Number(value) })
     }
 
+    getFleet = (index) => {
+        const fleets = this.props.fleets || []
+        return fleets[index]
+    }
+
+    fleetHasShips = (index) => {
+        const fleet = this.getFleet(index)
+        return !!(fleet && fleet.api_ship && fleet.api_ship.some(id => id > 0))
+    }
+
+    //連合艦隊形式（1 機動 / 2 水上 / 3 輸送）；第 2 艦隊沒船時不認為是連合
+    getCombinedType = () => {
+        const flag = Number(this.props.combinedFlag)
+        if (flag !== 1 && flag !== 2 && flag !== 3) return 0
+        return this.fleetHasShips(1) ? flag : 0
+    }
+
+    //第 3 艦隊 7 格全滿 = 遊撃部隊／水雷戦隊
+    isGuerrillaFleet = () => {
+        const fleet = this.getFleet(2)
+        const apiShip = (fleet && fleet.api_ship) || []
+        return apiShip.length === 7 && apiShip.every(id => id > 0)
+    }
+
+    //自动模式：連合 > 第3艦隊(7舰) > 第1艦隊；手动模式：忠实序号，不带連合标记
+    resolveFleetPlan = () => {
+        if (this.state.fleetMode !== 'manual') {
+            const combinedType = this.getCombinedType()
+            if (combinedType) return { indices: [0, 1], combinedType, auto: true }
+            if (this.isGuerrillaFleet()) return { indices: [2], combinedType: 0, auto: true }
+            return { indices: [0], combinedType: 0, auto: true }
+        }
+        const indices = []
+        this.state.manualFleets.forEach((checked, index) => {
+            if (checked) indices.push(index)
+        })
+        return { indices, combinedType: 0, auto: false }
+    }
+
+    getFleetPlanHint = (plan) => {
+        if (!plan.auto) {
+            if (!plan.indices.length) return '未选择舰队，将只导出陆航'
+            const labels = plan.indices.map(index => `第${index + 1}`).join(' + ')
+            const tabHint = plan.indices[0] === 0 ? '' : `；noro6 默认打开第1艦隊，请切到第${plan.indices[0] + 1}艦隊`
+            return `手动：${labels}艦隊${tabHint}`
+        }
+        if (plan.combinedType) {
+            return `自动：連合艦隊（${FLEET_TYPE_NAMES[plan.combinedType]}）→ 第1 + 第2艦隊`
+        }
+        if (plan.indices[0] === 2) {
+            return '自动：第3艦隊（7 舰编成）→ 遊撃部隊；noro6 默认打开第1艦隊，请切到第3艦隊'
+        }
+        return '自动：第1艦隊'
+    }
+
+    handleFleetModeChange = (event) => {
+        this.setState({ fleetMode: event.target.value })
+    }
+
+    handleManualFleetChange = (index, checked) => {
+        const manualFleets = this.state.manualFleets.slice()
+        manualFleets[index] = checked
+        this.setState({ manualFleets })
+    }
+
     //舰队编成JSON生成
     refreshFleetText = () => {
-        const fleets = this.props.fleets;
+        const fleets = this.props.fleets || [];
         const ships = this.props.ships;
         const equips = this.props.equips;
         const airbases = this.props.airbases;
+        const fleetPlan = this.resolveFleetPlan();
         let result = `{"version": 4,"hqlv":${this.props.hqlv},`;
 
-        for (let i = 0; i < fleets.length; i++) {
+        for (let p = 0; p < fleetPlan.indices.length; p++) {
+            const i = fleetPlan.indices[p];
             const fleet = fleets[i];
+            //空舰队没有导出价值，直接跳过
+            if (!fleet || !fleet.api_ship || !this.fleetHasShips(i)) continue;
             result += `"f${i + 1}":{`;
+            //連合标记只能挂在第 1 艦隊上，noro6 以此判断 f1+f2 是否合并
+            if (fleetPlan.combinedType && i === 0) result += `"t":${fleetPlan.combinedType},`;
             for (let j = 0; j < fleet.api_ship.length; j++) {
                 if (ships[fleet.api_ship[j]]) {
                     const ship = ships[fleet.api_ship[j]];
@@ -325,6 +407,7 @@ export const reactClass = connect(state => ({
     render() {
         const result = this.state.result;
         const airbaseGroups = this.getAirbaseGroups();
+        const fleetPlan = this.resolveFleetPlan();
         return (
             <div>
                 <h2>舰队导出与管理</h2>
@@ -404,6 +487,37 @@ export const reactClass = connect(state => ({
                         </label>
                         {airbaseGroups.length === 0 && <span className="optionsHint">暂无陆航数据</span>}
                     </div>
+
+                    <div className="optionsRow">
+                        <label className="optionsLabel">
+                            舰队范围
+                            <select
+                                className="areaSelect"
+                                value={this.state.fleetMode}
+                                onChange={this.handleFleetModeChange}
+                            >
+                                <option value="auto">自动（連合 / 遊撃 / 第1艦隊）</option>
+                                <option value="manual">手动选择舰队</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    {this.state.fleetMode === 'manual' && (
+                        <div className="optionsRow">
+                            {[0, 1, 2, 3].map(index => (
+                                <label className="optionsLabel" key={index}>
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.manualFleets[index]}
+                                        onChange={event => this.handleManualFleetChange(index, event.target.checked)}
+                                    />
+                                    第{index + 1}舰队
+                                </label>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="optionsHint fleetHint">{this.getFleetPlanHint(fleetPlan)}</div>
                     
                     <h4>编成 JSON 文本</h4>
                     <div className="textAreaContainer">
