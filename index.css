@@ -157,17 +157,38 @@ h4 {
 
 /* 顶部两个区块并排：内置窗口操作 / 单独数据导出 */
 .topRow {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 12px;
+    align-items: start;
     margin-bottom: 25px;
 }
 
 .topCol {
     display: flex;
     flex-direction: column;
-    flex: 1 1 200px;
     min-width: 0;
+}
+
+.topCol > h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+/* 两个控件的盒子高度锁死，避免 select 的 inline 基线把一侧压低 */
+.topCol .primaryButton,
+.topCol .inlineRow,
+.topCol .areaSelect,
+.topCol .inlineButton {
+    height: 32px;
+    box-sizing: border-box;
+    margin: 0;
+    vertical-align: middle;
+}
+
+.topCol .primaryButton,
+.topCol .inlineButton {
+    padding: 0;
 }
 
 /* 单独数据导出：下拉 + 复制 在一行里 */
@@ -177,10 +198,13 @@ h4 {
     gap: 8px;
 }
 
+.inlineRow .areaSelect {
+    padding: 0 8px;
+}
+
 .inlineButton {
     width: 60px;
     flex: 0 0 auto;
-    margin-bottom: 0;
 }
 
 .refreshSummary {
