@@ -80,19 +80,18 @@ export const reactClass = connect(state => ({
     ships: state.info.ships,
     equips: state.info.equips,
     airbases: state.info.airbase,
-    //海域名（6 → 中部海域）与当前出击海域，用于生成下拉选项和默认值
+    //海域名（6 → 中部海域），用于生成陆航下拉的选项文案
     mapareas: state.const ? state.const.$mapareas : undefined,
-    sortieMapId: state.sortie ? state.sortie.sortieMapId : 0,
     //连合舰队形式（1 机动 / 2 水上 / 3 输送），0 表示没有连合
     combinedFlag: state.sortie ? state.sortie.combinedFlag : 0
 }))(class View extends Component {
 
-    //selectedAirbaseArea 为 null 时表示「跟随当前出击海域」；'' 表示不导出陆航
+    //selectedAirbaseArea 为 '' 表示不导出陆航（默认），否则是要导出的 api_area_id
     //fleetMode 自动时按连合 / 7舰第3舰队 / 第1舰队 依次判断；手动时按 manualFleets 勾选
     state = {
         result: "",
         summary: "",
-        selectedAirbaseArea: null,
+        selectedAirbaseArea: '',
         fleetMode: "auto",
         manualFleets: [true, true, true, true],
         stockMode: "shipsAll"
@@ -151,24 +150,6 @@ export const reactClass = connect(state => ({
             .sort((a, b) => a.areaId - b.areaId)
     }
 
-    //当前出击的海域 id（sortieMapId 是「海域+图号」拼成的，例如 75 → 7、621 → 62）
-    getSortieAreaId = () => {
-        const sortieMapId = Number(this.props.sortieMapId)
-        if (!sortieMapId) return null
-        return Math.floor(sortieMapId / 10)
-    }
-
-    //没手动选过就跟随当前出击海域；当前海域没有陆航就不导出（免得拿别图的基地算出错的制空）
-    resolveAirbaseArea = (groups) => {
-        if (this.state.selectedAirbaseArea != null) return this.state.selectedAirbaseArea
-        const areas = groups.map(group => group.areaId)
-        const sortieArea = this.getSortieAreaId()
-        if (sortieArea != null) {
-            return areas.indexOf(sortieArea) !== -1 ? sortieArea : ''
-        }
-        //不在出击中（sortieMapId 为 0）时退回第一个有陆航的海域
-        return areas.length ? areas[0] : ''
-    }
 
     //下拉选项文案：6 图 · 中部海域（3 队）
     getAirbaseAreaLabel = (group) => {
@@ -318,7 +299,7 @@ export const reactClass = connect(state => ({
             fleetParts.push({ index: i, ships: shipCount });
         }
 
-        const airbaseArea = this.resolveAirbaseArea(this.getAirbaseGroups());
+        const airbaseArea = this.state.selectedAirbaseArea;
         const airbaseList = pickAirbases(airbases, airbaseArea);
         let airbase_cnt = 0;
         for (let i = 0; i < airbaseList.length; i++) {
@@ -456,7 +437,7 @@ export const reactClass = connect(state => ({
                             陆航来源
                             <select
                                 className="areaSelect"
-                                value={this.resolveAirbaseArea(airbaseGroups)}
+                                value={this.state.selectedAirbaseArea}
                                 onChange={this.handleAirbaseAreaChange}
                                 disabled={airbaseGroups.length === 0}
                             >
