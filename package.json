@@ -19,7 +19,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/HyperKitakami/poi-plugin-noro6-export-ng"
+        "url": "git+https://github.com/HyperKitakami/poi-plugin-noro6-export-ng.git"
     },
     "keywords": [
         "poi",
