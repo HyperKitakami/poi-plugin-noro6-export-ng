@@ -1,8 +1,12 @@
 name: Publish to npm
 
 # 打 tag（v0.1.0 之类）时发布；tag 必须与 package.json 的 version 一致。
-# 注意：npm 对新包的首个版本会走「暂存发布」，registry 上先出现占位版本 0.0.0-stage，
-# 真实版本要维护者在 npmjs.com → Staged Packages 里用 2FA 批准后才上线。
+# 注意：新包的首个版本发布后，registry 会先出现占位版本 0.0.0-stage，真实版本要等
+# npm 的发布后扫描完成（几分钟）才可见。此时别急着重跑，会撞「版本号已占用」。
+#
+# 鉴权方式：npm Trusted Publishing（OIDC），不使用任何长期 token。
+# 因此这里【不要】给 setup-node 加 registry-url、也【不要】注入 NODE_AUTH_TOKEN——
+# 两者任一存在，npm 都会改走 token 分支，OIDC 交换就不会发生。
 on:
   push:
     tags:
@@ -10,7 +14,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # 生成 npm provenance（来源证明）需要
+  id-token: write # OIDC 交换 + provenance 签名都需要
 
 jobs:
   publish:
@@ -21,7 +25,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
       # 本包装进 poi 后由 poi 运行时转译，没有构建步骤也没有依赖，因此不跑 npm ci
@@ -36,7 +39,6 @@ jobs:
             exit 1
           fi
 
+      # OIDC 自动鉴权并自动生成 provenance，无 token 可泄露
       - name: 发布到 npm
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
