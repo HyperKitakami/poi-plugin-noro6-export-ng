@@ -1,0 +1,40 @@
+name: Publish to npm
+
+# 打 tag（v0.1.0 之类）时发布；tag 必须与 package.json 的 version 一致
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # 生成 npm provenance（来源证明）需要
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      # 本包装进 poi 后由 poi 运行时转译，没有构建步骤也没有依赖，因此不跑 npm ci
+      - name: 升级 npm
+        run: npm install -g npm@latest
+
+      - name: 校验 tag 与 package.json 版本一致
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          if [ "$PKG" != "$GITHUB_REF_NAME" ]; then
+            echo "版本不一致：package.json 是 $PKG，但 tag 是 $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: 发布到 npm
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
