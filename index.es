@@ -91,72 +91,45 @@ export const reactClass = connect(state => ({
         result: "",
         selectedAirbaseArea: null,
         fleetMode: "auto",
-        manualFleets: [true, true, true, true]
+        manualFleets: [true, true, true, true],
+        stockMode: "shipsAll"
     };
 
-    //舰娘资料导出(包含未锁定)
-    exportShipsAll = () => {
-        const ships = this.props.ships;
-        let result = []
-        Object.keys(ships).forEach((key) => {
-            const ship = ships[key]
-            result.push(parseShip(ship))
-        })
-        let strResult = JSON.stringify(result)
-        this.setState({ result: strResult })
-        copyToClipboard(strResult)
-        return result;
+    //舰娘所持数据；lockedOnly 时只要已上锁的（输出的是舰种 id）
+    buildShipStock = (lockedOnly) => {
+        const ships = this.props.ships || {}
+        return Object.values(ships)
+            .filter(ship => ship && (!lockedOnly || ship.api_locked == 1))
+            .map(parseShip)
     }
 
-    //舰娘资料导出(不包含未锁定)
-    exportShipsLocked = () => {
-        const ships = this.props.ships;
-        let result = []
-        Object.values(ships)
-            .filter(ship => {
-                return ship.api_locked == "1"
-            }).forEach(ship => {
-                result.push(parseShip(ship))
-            })
-        let strResult = JSON.stringify(result)
-        this.setState({ result: strResult })
-        copyToClipboard(strResult)
-        return result;
-    }
-
-    //装备资料导出(包含未锁定)
-    exportEquipsAll = () => {
-        const equips = this.props.equips;
-        let result = [];
-        Object.keys(equips).forEach((key) => {
-            const equip = equips[key];
-            if (equip) {
-                if (equip.api_level === undefined) {
-                    result.push({ "id": equip.api_slotitem_id, "lv": 0 });
-                } else {
-                    result.push({ "id": equip.api_slotitem_id, "lv": equip.api_level });
-                }
-            }
-        });
-        let strResult = JSON.stringify(result);
-        this.setState({ result: strResult });
-        copyToClipboard(strResult);
-        return result;
-    }
-
-    //装备资料导出(不包含未锁定)
-    exportEquipsLocked = () => {
-        const equips = this.props.equips;
-        //按实例 id 的键顺序遍历会因为取最大 id 当上界而漏掉 id 最大的那件装备，
-        //这里直接遍历所有实例，不依赖 id 是否连续
-        const result = Object.values(equips)
-            .filter(equip => equip && equip.api_locked != 0)
+    //装备所持数据；lockedOnly 时只要已上锁的
+    buildEquipStock = (lockedOnly) => {
+        const equips = this.props.equips || {}
+        return Object.values(equips)
+            .filter(equip => equip && (!lockedOnly || equip.api_locked != 0))
             .map(parseEquip)
-        const strResult = JSON.stringify(result)
+    }
 
-        this.setState({ result: strResult })
-        copyToClipboard(strResult)
-        return strResult;
+    //按下拉选项生成舰娘/装备 JSON 写进下方文本域，不再顺带写剪贴板
+    generateStock = () => {
+        const { stockMode } = this.state
+        const lockedOnly = stockMode.indexOf('Locked') !== -1
+        const data = stockMode.indexOf('ships') === 0
+            ? this.buildShipStock(lockedOnly)
+            : this.buildEquipStock(lockedOnly)
+        this.setState({ result: JSON.stringify(data) })
+    }
+
+    handleStockModeChange = (event) => {
+        this.setState({ stockMode: event.target.value })
+    }
+
+    copyResult = () => {
+        const { result } = this.state
+        if (!result) return
+        copyToClipboard(result)
+        if (typeof window.toast === 'function') window.toast('已复制到剪贴板')
     }
 
     //把陆航按 api_area_id 分组（poi 的 airbase 数组里可能同时存在 6 图和 7 图的基地）
@@ -384,22 +357,14 @@ export const reactClass = connect(state => ({
     }
 
     openNewPage = () => {
-        const ships = this.exportShipsAll();
-        const equips = this.exportEquipsAll();
-        const encodedShips = JSON.stringify(ships);
-        const encodedEquips = JSON.stringify(equips);
-        const url = `https://noro6.github.io/kc-web#import:{"predeck":{},"ships":${encodedShips},"items":${encodedEquips}}`;
-        
-        this.openOrFocusNoro6Window(url);
-    }
+        //noro6 的 #import: 只带所持数据（编成走「导出至 noro6」）
+        const url = `https://noro6.github.io/kc-web#import:${JSON.stringify({
+            predeck: {},
+            ships: this.buildShipStock(false),
+            items: this.buildEquipStock(false)
+        })}`;
 
-    copyUrl = () => {
-        const ships = this.exportShipsAll();
-        const equips = this.exportEquipsAll();
-        const encodedShips = JSON.stringify(ships);
-        const encodedEquips = JSON.stringify(equips);
-        const url = `https://noro6.github.io/kc-web#import:{"predeck":{},"ships":${encodedShips},"items":${encodedEquips}}`;
-        copyToClipboard(url);
+        this.openOrFocusNoro6Window(url);
     }
 
 
@@ -412,47 +377,31 @@ export const reactClass = connect(state => ({
             <div>
                 <h2>舰队导出与管理</h2>
 
-                <div className="buttonGroup">
-                    <div className="group">
-                        <h4>内置窗口操作</h4>
-                        <Button className="primaryButton" onClick={this.openNewPage}>
-                            打开制空权模拟器
-                        </Button>
-                    </div>
-
-                    <div className="group">
-                        <h4>外部链接操作</h4>
-                        <Button className="secondaryButton" onClick={this.copyUrl}>
-                            复制导出链接
-                        </Button>
-                    </div>
+                <div className="section">
+                    <h4>内置窗口操作</h4>
+                    <Button className="primaryButton" onClick={this.openNewPage}>
+                        打开制空权模拟器
+                    </Button>
                 </div>
 
                 <div className="section">
                     <h4>单独数据导出</h4>
-                    
-                    <div className="buttonGroup">
-                        <Button className="secondaryButton" style={{width: '48%'}} onClick={this.exportShipsAll}>
-                            舰娘：包含未锁定
-                        </Button>
-                        
-                        <Button className="secondaryButton" style={{width: '48%'}} onClick={this.exportShipsLocked}>
-                            舰娘：仅限已锁定
-                        </Button>
-                    </div>
-
-                    <div className="buttonGroup">
-                        <Button className="secondaryButton" style={{width: '48%'}} onClick={this.exportEquipsAll}>
-                            装备：包含未锁定
-                        </Button>
-
-                        <Button className="secondaryButton" style={{width: '48%'}} onClick={this.exportEquipsLocked}>
-                            装备：仅限已锁定
+                    <div className="optionsRow">
+                        <select
+                            className="areaSelect stockSelect"
+                            value={this.state.stockMode}
+                            onChange={this.handleStockModeChange}
+                        >
+                            <option value="shipsAll">舰娘：包含未锁定</option>
+                            <option value="shipsLocked">舰娘：仅限已锁定</option>
+                            <option value="equipsAll">装备：包含未锁定</option>
+                            <option value="equipsLocked">装备：仅限已锁定</option>
+                        </select>
+                        <Button className="secondaryButton generateButton" onClick={this.generateStock}>
+                            生成
                         </Button>
                     </div>
                 </div>
-
-                <br />
 
                 <div className="section">
                     <h4>舰队编成导出</h4>
@@ -468,7 +417,18 @@ export const reactClass = connect(state => ({
                         </Button>
                     </div>
                     
-                    <div className="optionsRow">
+                    <div className="optionsGrid">
+                        <label className="optionsLabel">
+                            舰队范围
+                            <select
+                                className="areaSelect"
+                                value={this.state.fleetMode}
+                                onChange={this.handleFleetModeChange}
+                            >
+                                <option value="auto">自动（連合 / 遊撃 / 第1艦隊）</option>
+                                <option value="manual">手动选择舰队</option>
+                            </select>
+                        </label>
                         <label className="optionsLabel">
                             陆航来源
                             <select
@@ -485,22 +445,11 @@ export const reactClass = connect(state => ({
                                 ))}
                             </select>
                         </label>
-                        {airbaseGroups.length === 0 && <span className="optionsHint">暂无陆航数据</span>}
                     </div>
 
-                    <div className="optionsRow">
-                        <label className="optionsLabel">
-                            舰队范围
-                            <select
-                                className="areaSelect"
-                                value={this.state.fleetMode}
-                                onChange={this.handleFleetModeChange}
-                            >
-                                <option value="auto">自动（連合 / 遊撃 / 第1艦隊）</option>
-                                <option value="manual">手动选择舰队</option>
-                            </select>
-                        </label>
-                    </div>
+                    {airbaseGroups.length === 0 && (
+                        <div className="optionsHint">暂无陆航数据，陆航不会被导出</div>
+                    )}
 
                     {this.state.fleetMode === 'manual' && (
                         <div className="optionsRow">
@@ -518,8 +467,17 @@ export const reactClass = connect(state => ({
                     )}
 
                     <div className="optionsHint fleetHint">{this.getFleetPlanHint(fleetPlan)}</div>
-                    
-                    <h4>编成 JSON 文本</h4>
+
+                    <div className="resultHeader">
+                        <h4>JSON 文本</h4>
+                        <Button
+                            className="secondaryButton copyButton"
+                            onClick={this.copyResult}
+                            disabled={!result}
+                        >
+                            复制
+                        </Button>
+                    </div>
                     <div className="textAreaContainer">
                         <TextArea style={{ height: "120px" }} placeholder="点击上方按钮生成文本" className="bp3-fill" fill={true} value={this.state.result} readOnly={true}></TextArea>
                     </div>

@@ -15,18 +15,6 @@ h4 {
     margin-bottom: 25px;
 }
 
-.buttonGroup {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-
-.group {
-    display: flex;
-    flex-direction: column;
-    width: 48%;
-}
-
 .primaryButton {
     width: 100%;
     padding: 8px 0;
@@ -138,6 +126,58 @@ h4 {
 .optionsLabel input[type="checkbox"] {
     margin: 0;
     cursor: pointer;
+}
+
+/* 舰队范围 / 陆航来源 并排 */
+.optionsGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.optionsGrid > .optionsLabel {
+    flex: 1 1 200px;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.optionsGrid .areaSelect {
+    width: 100%;
+    min-width: 0;
+}
+
+.stockSelect {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.generateButton {
+    width: 88px;
+    flex: 0 0 auto;
+    margin-bottom: 0;
+}
+
+.resultHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 14px;
+    margin-bottom: 4px;
+}
+
+.resultHeader h4 {
+    margin: 0;
+}
+
+.copyButton {
+    width: 72px;
+    flex: 0 0 auto;
+    margin-bottom: 0;
 }
 
 .helpButton {
