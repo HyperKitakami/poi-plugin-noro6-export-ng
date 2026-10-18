@@ -1,7 +1,11 @@
 {
-    "name": "poi-plugin-noro6-export-plus",
+    "name": "poi-plugin-noro6-export-ng",
     "version": "0.1.0",
     "main": "index.es",
+    "files": [
+        "index.es",
+        "index.css"
+    ],
     "description": "a plugin export ships and equips to noro6 (HyperKitakami's fork)",
     "author": {
         "name": "HyperKitakami",
@@ -15,7 +19,7 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/HyperKitakami/poi-plugin-noro6-export"
+        "url": "https://github.com/HyperKitakami/poi-plugin-noro6-export-ng"
     },
     "keywords": [
         "poi",
@@ -23,6 +27,9 @@
         "poi-plugin",
         "noro6export"
     ],
+    "scripts": {
+        "deploy": "node scripts/deploy.mjs"
+    },
     "license": "MIT",
     "poiPlugin": {
         "title": "noro6舰队导出",

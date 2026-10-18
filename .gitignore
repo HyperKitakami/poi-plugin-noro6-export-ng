@@ -8,3 +8,6 @@ Thumbs.db
 
 # 测试数据（noro6 导入用，不随插件发布）
 testdata/
+
+# 本地部署脚本（只在本机用，不进版本库、也不进 npm 包）
+scripts/
