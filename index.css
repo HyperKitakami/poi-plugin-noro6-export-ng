@@ -128,6 +128,21 @@ h4 {
     cursor: pointer;
 }
 
+/* 手动模式：全选框单独一行，紧贴在舰队勾选行上方 */
+.selectAllRow {
+    margin-bottom: 0;
+}
+
+.selectAllRow + .optionsRow {
+    margin-top: 6px;
+}
+
+/* 部分勾选时是全选框的框内单横（indeterminate），这里只统一一下尺寸，横杠由浏览器画 */
+.selectAllRow input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+}
+
 /* 舰队范围 / 陆航来源 并排 */
 .optionsGrid {
     display: flex;

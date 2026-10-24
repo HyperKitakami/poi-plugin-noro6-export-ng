@@ -91,12 +91,13 @@ export const reactClass = connect(state => ({
 
     //selectedAirbaseArea 为 '' 表示不导出陆航（默认），否则是要导出的 api_area_id
     //fleetMode 自动时按连合 / 7舰第3舰队 / 第1舰队 依次判断；手动时按 manualFleets 勾选
+    //manualFleets 默认全不选，切到手动后由用户自己挑舰队，避免误导出全部舰队
     state = {
         result: "",
         summary: "",
         selectedAirbaseArea: '',
         fleetMode: "auto",
-        manualFleets: [true, true, true, true],
+        manualFleets: [false, false, false, false],
         stockMode: "shipsAll"
     };
 
@@ -215,7 +216,12 @@ export const reactClass = connect(state => ({
 
     getFleetPlanHint = (plan) => {
         if (!plan.auto) {
-            if (!plan.indices.length) return '未选择舰队，将只导出陆航'
+            if (!plan.indices.length) {
+                //舰队一个都没勾时，导出内容只剩陆航；陆航也没选就只剩版本头
+                return this.state.selectedAirbaseArea === ''
+                    ? '未选择舰队，且未导出陆航：导出内容为空，请至少勾选一支舰队'
+                    : '未选择舰队，将只导出陆航'
+            }
             const labels = plan.indices.map(index => `第${index + 1}`).join(' + ')
             const tabHint = plan.indices[0] === 0 ? '' : `；noro6 默认打开第1艦隊，请切到第${plan.indices[0] + 1}艦隊`
             return `手动：${labels}艦隊${tabHint}`
@@ -237,6 +243,32 @@ export const reactClass = connect(state => ({
         const manualFleets = this.state.manualFleets.slice()
         manualFleets[index] = checked
         this.setState({ manualFleets })
+    }
+
+    //全选框：全选时勾上，全不选时空着，只勾了一部分时显示为框内单横（indeterminate）
+    handleSelectAllChange = (event) => {
+        const checked = event.target.checked
+        this.setState({ manualFleets: this.state.manualFleets.map(() => checked) })
+    }
+
+    setMasterCheckbox = (element) => {
+        this.masterCheckbox = element
+    }
+
+    //indeterminate 只能通过 DOM 属性设置，React 不会帮我们管，所以每次渲染后同步一次
+    syncMasterCheckbox = () => {
+        if (!this.masterCheckbox) return
+        const total = this.state.manualFleets.length
+        const selected = this.state.manualFleets.filter(Boolean).length
+        this.masterCheckbox.indeterminate = selected > 0 && selected < total
+    }
+
+    componentDidMount() {
+        this.syncMasterCheckbox()
+    }
+
+    componentDidUpdate() {
+        this.syncMasterCheckbox()
     }
 
     //刷新后的一行摘要，省得每次去比对整段 JSON
@@ -382,6 +414,7 @@ export const reactClass = connect(state => ({
         const result = this.state.result;
         const airbaseGroups = this.getAirbaseGroups();
         const fleetPlan = this.resolveFleetPlan();
+        const selectedFleetCount = this.state.manualFleets.filter(Boolean).length;
         return (
             <div>
                 <h2>舰队导出与管理</h2>
@@ -463,18 +496,32 @@ export const reactClass = connect(state => ({
                     )}
 
                     {this.state.fleetMode === 'manual' && (
-                        <div className="optionsRow">
-                            {[0, 1, 2, 3].map(index => (
-                                <label className="optionsLabel" key={index}>
+                        <React.Fragment>
+                            <div className="optionsRow selectAllRow">
+                                <label className="optionsLabel">
                                     <input
                                         type="checkbox"
-                                        checked={this.state.manualFleets[index]}
-                                        onChange={event => this.handleManualFleetChange(index, event.target.checked)}
+                                        ref={this.setMasterCheckbox}
+                                        checked={selectedFleetCount === this.state.manualFleets.length}
+                                        onChange={this.handleSelectAllChange}
                                     />
-                                    第{index + 1}舰队
+                                    全选
                                 </label>
-                            ))}
-                        </div>
+                                <span className="optionsHint">已选 {selectedFleetCount} / {this.state.manualFleets.length}</span>
+                            </div>
+                            <div className="optionsRow">
+                                {[0, 1, 2, 3].map(index => (
+                                    <label className="optionsLabel" key={index}>
+                                        <input
+                                            type="checkbox"
+                                            checked={this.state.manualFleets[index]}
+                                            onChange={event => this.handleManualFleetChange(index, event.target.checked)}
+                                        />
+                                        第{index + 1}舰队
+                                    </label>
+                                ))}
+                            </div>
+                        </React.Fragment>
                     )}
 
                     <div className="optionsHint fleetHint">{this.getFleetPlanHint(fleetPlan)}</div>
